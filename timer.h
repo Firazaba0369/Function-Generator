@@ -8,6 +8,6 @@
 #ifndef INC_TIMER_H_
 #define INC_TIMER_H_
 
-void TIM2_init(void);
+void TIM2_init(uint16_t arr_val,uint16_t ccr_val);
 
 #endif /* INC_TIMER_H_ */
