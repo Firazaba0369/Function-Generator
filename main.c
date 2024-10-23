@@ -19,6 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "DAC.h"
+#include "timer.h"
+#include "keypad.h"
+
+//prototype for interrupt function
+void TIM2_IRQHandler(void);
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -39,12 +44,46 @@ int main(void)
 
   /* Initialize all configured peripherals */
 
+  //---------------Configure GPIOA port for ISR time measuring--------------------//
+  //configure GPIOA clock
+  RCC->AHB2ENR   |=  (RCC_AHB2ENR_GPIOAEN);
+  //setup MODER for row output
+  GPIOA->MODER &= ~(GPIO_MODER_MODE1);
+  GPIOA->MODER |= (GPIO_MODER_MODE1_0);
+  //set push-pull output type
+  GPIOA->OTYPER &= ~(GPIO_OTYPER_OT1);
+  //no PUPD
+  GPIOA->PUPDR |= (GPIO_PUPDR_PUPD1_1);
+  //set to high speed
+  GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED1_Msk);
+  GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
+
+  //initialize DAC
+  DAC_init();
+  //initialize TIM2
+  TIM2_init();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
 
   }
+}
+
+//ISR function for TIM2
+void TIM2_IRQHandler(void){
+//	// check for CC1 flag
+//	if (TIM2->SR & TIM_SR_CC1IF){
+//		GPIOA->ODR &= ~GPIO_ODR_OD0; //toggle output off
+//		TIM2->SR &= ~(TIM_SR_CC1IF); //clear and update CCR1 flag
+//	}
+	//check for update event flag
+	if (TIM2->SR & TIM_SR_UIF){
+		GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
+		DAC_write((uint16_t)0);
+		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
+		GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
+	}
 }
 
 /**
