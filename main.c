@@ -21,6 +21,7 @@
 #include "DAC.h"
 #include "timer.h"
 #include "keypad.h"
+#include "LULtables.h"
 
 //prototype for interrupt function
 void TIM2_IRQHandler(void);
