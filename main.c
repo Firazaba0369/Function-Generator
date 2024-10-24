@@ -21,7 +21,7 @@
 #include "DAC.h"
 #include "timer.h"
 #include "keypad.h"
-#include "LULtables.h"
+#include "LUTs.h"
 
 //prototype for interrupt function
 void TIM2_IRQHandler(void);
@@ -45,7 +45,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
 
-  //---------------Configure GPIOA port for ISR time measuring--------------------//
+//  //---------------Configure GPIOA port for ISR time measuring--------------------//
   //configure GPIOA clock
   RCC->AHB2ENR   |=  (RCC_AHB2ENR_GPIOAEN);
   //setup MODER for row output
@@ -62,7 +62,7 @@ int main(void)
   //initialize DAC
   DAC_init();
   //initialize TIM2
-  TIM2_init();
+  TIM2_init((uint16_t)588);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -71,6 +71,7 @@ int main(void)
   }
 }
 
+volatile uint16_t sin_index = 0; //index for
 //ISR function for TIM2
 void TIM2_IRQHandler(void){
 //	// check for CC1 flag
@@ -81,7 +82,11 @@ void TIM2_IRQHandler(void){
 	//check for update event flag
 	if (TIM2->SR & TIM_SR_UIF){
 		GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
-		DAC_write((uint16_t)0);
+		DAC_write(DAC_volt_conv(sine[sin_index]));
+		sin_index++;
+		if (sin_index >= 588) {
+			sin_index = 0; // Loop back to the start
+		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
 		GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
 	}
