@@ -8,7 +8,7 @@
 #define ARR_VAL 800 //value of ARR
 #define CCR_VAL 200 //value of CCR
 
-void TIM2_init(uint16_t arr_val,uint16_t ccr_val){
+void TIM2_init(uint16_t arr_val){
 	/*------------------- Configure PA0 for GPIOA output -------------------*/
 	//*******CHANGE GPIO PORT***********
 	//configure GPIOC clock
