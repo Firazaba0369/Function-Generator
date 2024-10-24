@@ -4,7 +4,7 @@
  *  Created on: Oct 23, 2024
  *      Author: firaz
  */
-
+#include "main.h"
 
 /** Generated using Dr LUT - Free Lookup Table Generator
   * https://github.com/ppelikan/drlut
