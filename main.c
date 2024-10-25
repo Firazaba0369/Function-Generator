@@ -34,9 +34,9 @@ volatile uint16_t freq = 1; //initialized to 1 for 100Hz
 //Global variable to store duty cycle
 volatile uint8_t duty_cycle = 5; //initialize to 50%
 //Global variable for adding duty cycle to square wave
-volatile uint16_t volt_val = 0; //initialize to 0
+volatile uint16_t volt_val = 0; //initialize to low
 //Global variable to detect if square wave
-volatile uint8_t is_square = 1;
+volatile uint8_t is_square = 1; //initialize to square
 //prototype for interrupt function
 void TIM2_IRQHandler(void);
 //prototype for output waveform function
