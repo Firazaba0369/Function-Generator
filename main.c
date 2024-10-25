@@ -23,29 +23,43 @@
 #include "keypad.h"
 #include "LUTs.h"
 #define LUT_SIZE 588 //size of look up arrays
-#define VOLT_HIGH 3000 //high voltage for duty cycle
-#define VOLT_LOW 0 //low voltage for duty cycle
+#define VOLT_HIGH (uint16_t)3000 //high voltage for duty cycle
+#define VOLT_LOW (uint16_t)0 //low voltage for duty cycle
 #define MAX_DUTY_CYCLE 9 //max duty cycle
 #define MIN_DUTY_CYCLE 1 //min duty cycle
 
+//prototype for interrupt function
+void TIM2_IRQHandler(void);
+//prototype for select waveform function
+void select_waveform(int8_t keypress);
+//prototype for output waveform function
+void output_waveform(int8_t keypress);
+//prototype for update frequency function
+void update_freq(int8_t keypress);
+//prototype for update duty cycle function
+void update_duty_cycle(int8_t keypress);
+
 // Global variable to store keypress value
-volatile uint8_t keypress_val = 9; //initialized to 9 for square wave
+volatile int8_t keypress_val = 9; //initialized to 9 for square wave
 //Global variable to store frequency
 volatile uint16_t freq = 1; //initialized to 1 for 100Hz
 //Global variable to store duty cycle
 volatile uint8_t duty_cycle = 5; //initialize to 50%
 //Global variable for adding duty cycle to square wave
 volatile uint16_t volt_val = 0; //initialize to low
+//Global variable to detect if sine wave
+volatile uint8_t is_sine = 0; //initialize to no square
+//Global variable to detect if triangle wave
+volatile uint8_t is_triangle = 0; //initialize to no triangle
+//Global variable to detect if ramp wave
+volatile uint8_t is_ramp = 0; //initialize to no ramp
 //Global variable to detect if square wave
 volatile uint8_t is_square = 1; //initialize to square
-//prototype for interrupt function
-void TIM2_IRQHandler(void);
-//prototype for output waveform function
-void output_waveform(uint8_t keypress);
-//prototype for update frequency function
-void update_freq(uint8_t keypress);
-//prototype for update duty cycle function
-void update_duty_cycle(uint8_t keypress);
+//Global variable for LUT index
+volatile uint16_t lut_index = 0;
+//Square wave array
+volatile uint16_t square[588];
+gen_square_wave(square, duty_cycle);//fill in square array
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -87,12 +101,13 @@ int main(void)
   /* Infinite loop */
   while (1)
   {
-	  uint8_t keypad = NO_PRESS; //variable to read key-press
+	  int8_t keypad = NO_PRESS; //variable to read key-press
 	  while(keypad == NO_PRESS){ //wait for key-press
 		  keypad = keypad_func(); //read key-press
 	  }
 	  while(keypad_func() != NO_PRESS); //wait for key release
 	  keypress_val = keypad; //update global key-press to keypad value
+	  select_waveform(keypress_val); //select waveform to output
 	  update_freq(keypress_val); //update frequency if needed
 	  //check if waveform is square wave
 	  if (is_square == 1){
@@ -101,58 +116,108 @@ int main(void)
   }
 }
 
-volatile uint16_t lut_index = 0; //index for
+
 void TIM2_IRQHandler(void){
-	//check for CC1 flag
-	if (TIM2->SR & TIM_SR_CC1IF){
-		DAC_write(DAC_volt_conv(volt_val)); //add a high or low volt value to square wave
-		TIM2->SR &= ~(TIM_SR_CC1IF); //clear and update CCR1 flag
-	}
 	//check for ARR flag
-	else if (TIM2->SR & TIM_SR_UIF){
-		GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
-		output_waveform(keypress_val); //output according waveform
-		lut_index+=freq; //index by frequency
-		if (lut_index >= LUT_SIZE) {
-			lut_index = 0; // Loop back to the start
+	if (TIM2->SR & TIM_SR_UIF){
+		//GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
+		if (is_square == 1){
+			DAC_write(DAC_volt_conv(VOLT_HIGH));
+		}
+		else{
+			output_waveform(keypress_val); //output according waveform
 		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
-		GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
+		//GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
 	}
+    // Check for CCR1 flag
+	else if (TIM2->SR & TIM_SR_CC1IF) {
+    	GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
+    	DAC_write(DAC_volt_conv(VOLT_LOW));
+    	//output_waveform(keypress_val); //add a high or low volt value to square wave volt_val
+        TIM2->SR &= ~TIM_SR_CC1IF;  // Clear CCR1 flag
+        GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
+    }
 }
-
 
 /**
   * @brief Output Waveform
   * @retval None
   */
-void output_waveform(uint8_t keypress){
-	if(keypress == 6){
+void output_waveform(int8_t keypress){
+	if(is_sine == 1){
 		DAC_write(DAC_volt_conv(sine[lut_index])); //output sine wave
+		lut_index+=freq; //index by frequency
+		if (lut_index >= LUT_SIZE) {
+			lut_index = 0; // Loop back to the start
+		}
+	}
+	else if(is_triangle == 1){
+		DAC_write(DAC_volt_conv(triangle[lut_index])); //output triangle wave
+		lut_index+=freq; //index by frequency
+		if (lut_index >= LUT_SIZE) {
+			lut_index = 0; // Loop back to the start
+		}
+	}
+	else if(is_ramp == 1){
+		DAC_write(DAC_volt_conv(ramp[lut_index])); //output ramp wave
+		lut_index+=freq; //index by frequency
+		if (lut_index >= LUT_SIZE) {
+			lut_index = 0; // Loop back to the start
+		}
+	}
+	else if(is_square == 1){
+		lut_index ^= 1;
+		DAC_write(DAC_volt_conv(square[lut_index])); //output square wave
+	}
+	return;
+}
+
+
+/**
+  * @brief Select Waveform
+  * @retval None
+  */
+void select_waveform(int8_t keypress){
+	if(keypress == 6){
+		is_sine = 1; //set sine wave
+		is_triangle = 0; //no triangle wave
+		is_ramp = 0; //no ramp wave
 		is_square = 0; //no square wave
+		disable_CCR(); //turn off CCR interrupt
 	}
 	else if(keypress == 7){
-		DAC_write(DAC_volt_conv(triangle[lut_index])); //output triangle wave
+		is_sine = 0; //no sine wave
+		is_triangle = 1; //no triangle wave
+		is_ramp = 0; //no ramp wave
 		is_square = 0;	//no square wave
+		disable_CCR(); //turn off CCR interrupt
 	}
 	else if(keypress == 8){
-		DAC_write(DAC_volt_conv(ramp[lut_index])); //output ramp wave
+		is_sine = 0; //no sine wave
+		is_triangle = 0; //no triangle wave
+		is_ramp = 1; //set ramp wave
 		is_square = 0; //no square wave
+		disable_CCR(); //turn off CCR interrupt
 	}
 	else if(keypress == 9){
-		DAC_write(DAC_volt_conv(square[lut_index])); //output square wave
+		is_sine = 0; //no sine wave
+		is_triangle = 0; //no triangle wave
+		is_ramp = 0; //no ramp wave
 		is_square = 1; //set square wave
+		//set freq for square wave
+		enable_CCR();
+		TIM2->ARR = ARR_VAL/freq;
+		TIM2->CCR1 = CCR_VAL/freq;
 	}
-	else{
-		DAC_write(0);//error
-	}
+	return;
 }
 
 /**
   * @brief Update Frequency
   * @retval None
   */
-void update_freq(uint8_t keypress){
+void update_freq(int8_t keypress){
 	if(keypress == 1){
 		freq = 1; //update frequency to 100Hz
 	}
@@ -177,37 +242,42 @@ void update_freq(uint8_t keypress){
   * @brief Update Duty Cycle
   * @retval None
   */
-void update_duty_cycle(uint8_t keypress){
+void update_duty_cycle(int8_t keypress){
 	//check if duty cycle needs to be increased by 10%
 	if(keypress == ASTERISK && duty_cycle != MAX_DUTY_CYCLE){
+		enable_CCR(); //turn on CCR timer
 		TIM2->CCR1 += ARR_VAL / 10 ; //increase CCR time by 10% of ARR
 		duty_cycle += 1; //increase duty cycle by 10%
 
-	    //check if duty cycle is above or below 50%
-		if(duty_cycle > 5){
-			volt_val = VOLT_HIGH; //set voltage high
-		}
-		else{
-			volt_val = VOLT_LOW; //set voltage low
-		}
+//	    //check if duty cycle is above or below 50%
+//		if(duty_cycle > 5){
+//			volt_val = VOLT_HIGH; //set voltage high
+//		}
+//		else{
+//			volt_val = VOLT_LOW; //set voltage low
+//		}
 	}
 	//check if duty cycle needs to be decreased by 10%
 	else if(keypress == POUND && duty_cycle != MIN_DUTY_CYCLE){
-		TIM2->CCR1 -= ARR_VAL / 10 ;//decrease CCR time by 10% of ARR
+		enable_CCR(); //turn on CCR timer
+		TIM2->CCR1 += ARR_VAL / 10 ;//decrease CCR time by 10% of ARR
 		duty_cycle -= 1; //decrease duty cycle by 10%
 
 		//check if duty cycle is above or below 50%
-		if(duty_cycle > 5){
-			volt_val = VOLT_HIGH; //set voltage high
-		}
-		else{
-			volt_val = VOLT_LOW; //set voltage low
-		}
+//		if(duty_cycle > 5){
+//			volt_val = VOLT_HIGH; //set voltage high
+//		}
+//		else{
+//			volt_val = VOLT_LOW; //set voltage low
+//		}
 	}
 	//check if duty cycle needs to be reset to 50%
 	else if(keypress == 0){
+		//disable CCR for duty cycle that is not 50% already
+		if (duty_cycle != 5){
+			disable_CCR();
+		}
 		//reset to 50% duty cycle
-		TIM2->CCR1 = 0;
 		duty_cycle = 5;
 	}
 	//otherwise do nothing
@@ -215,8 +285,6 @@ void update_duty_cycle(uint8_t keypress){
 		return;
 	}
 }
-
-
 
 /**
   * @brief System Clock Configuration
