@@ -23,8 +23,14 @@
 #include "keypad.h"
 #include "LUTs.h"
 
+// Global variable to store keypress value
+volatile uint8_t keypress_value = 9; //initialized to 9 for square wave
+//Global variable to store frequency
+volatile uint16_t freq = 1; //initialized to 1 for 100Hz
 //prototype for interrupt function
 void TIM2_IRQHandler(void);
+//prototype for output waveform function
+void output_waveform(uint8_t keypress);
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -59,10 +65,10 @@ int main(void)
   GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED1_Msk);
   GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
 
-  //initialize DAC
+  //initialize DAC, TIM2, and keypad
   DAC_init();
-  //initialize TIM2
-  TIM2_init((uint16_t)588);
+  TIM2_init((uint16_t)685);
+  keypad_init();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -71,26 +77,45 @@ int main(void)
   }
 }
 
-volatile uint16_t sin_index = 0; //index for
-//ISR function for TIM2
+volatile uint16_t lut_index = 0; //index for
 void TIM2_IRQHandler(void){
-//	// check for CC1 flag
-//	if (TIM2->SR & TIM_SR_CC1IF){
-//		GPIOA->ODR &= ~GPIO_ODR_OD0; //toggle output off
-//		TIM2->SR &= ~(TIM_SR_CC1IF); //clear and update CCR1 flag
-//	}
 	//check for update event flag
 	if (TIM2->SR & TIM_SR_UIF){
 		GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
-		DAC_write(DAC_volt_conv(sine[sin_index]));
-		sin_index++;
-		if (sin_index >= 588) {
-			sin_index = 0; // Loop back to the start
+		output_waveform(keypress_value);
+		//DAC_write(DAC_volt_conv(sine[lut_index])); //write the voltage point to the DAC
+		lut_index+=freq; //index by frequency
+		if (lut_index >= 588) {
+			lut_index = 0; // Loop back to the start
 		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
 		GPIOA->ODR &= ~GPIO_ODR_OD1; //set bit low
 	}
 }
+
+/**
+  * @brief Output Waveform
+  * @retval None
+  */
+void output_waveform(uint8_t keypress){
+	if(keypress == 6){
+		DAC_write(DAC_volt_conv(sine[lut_index])); //output sine wave
+	}
+	else if(keypress == 7){
+			DAC_write(DAC_volt_conv(triangle[lut_index])); //output triangle wave
+	}
+	else if(keypress == 8){
+			DAC_write(DAC_volt_conv(ramp[lut_index])); //output ramp wave
+	}
+	else if(keypress == 9){
+		DAC_write(DAC_volt_conv(square[lut_index])); //output square wave
+	}
+	else{
+		DAC_write(0);//error
+	}
+}
+
+
 
 /**
   * @brief System Clock Configuration
