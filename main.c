@@ -70,7 +70,6 @@ int main(void)
   TIM2_init((uint16_t)685);
   keypad_init();
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
 
