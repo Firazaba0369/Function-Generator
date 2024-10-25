@@ -5,13 +5,12 @@
  *      Author: firaz
  */
 #include "main.h"
-#define ARR_VAL 800 //value of ARR
-#define CCR_VAL 200 //value of CCR
+#define ARR_VAL 685 //value of ARR
+#define CCR_VAL 0 //value of CCR*/
 
-void TIM2_init(uint16_t arr_val){
+void TIM2_init(void){
 	/*------------------- Configure PA0 for GPIOA output -------------------*/
-	//*******CHANGE GPIO PORT***********
-	//configure GPIOC clock
+	//configure GPIOA clock
 	RCC->AHB2ENR   |=  (RCC_AHB2ENR_GPIOAEN);
 	//setup MODER for row output
 	GPIOA->MODER &= ~(GPIO_MODER_MODE0);
@@ -28,13 +27,13 @@ void TIM2_init(uint16_t arr_val){
 	//set TIM2 to count up
 	TIM2->CR1 &= ~(TIM_CR1_DIR);
 	//set ARR clock to 799 seconds for 5kHz square wave
-	TIM2->ARR = arr_val - 1;
+	TIM2->ARR = ARR_VAL;
 	//set CCR1 to interrupt @ a 25% duty cycle
-	//TIM2->CCR1 = CCR_VAL - 1;
+	TIM2->CCR1 = CCR_VAL;
 	//enable update event interrupt in TIM2
-	TIM2->DIER |= (TIM_DIER_UIE /*| TIM_DIER_CC1IE*/);
+	TIM2->DIER |= (TIM_DIER_UIE | TIM_DIER_CC1IE);
 	//clear the flag before starting
-	TIM2->SR &= ~(TIM_SR_UIF /*| TIM_SR_CC1IF*/);
+	TIM2->SR &= ~(TIM_SR_UIF | TIM_SR_CC1IF);
 	//start timer
 	TIM2->CR1 |= TIM_CR1_CEN;
 	//enable interrupts globally
