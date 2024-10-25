@@ -5,8 +5,8 @@
  *      Author: firaz
  */
 #include "main.h"
-#define ARR_VAL 685 //value of ARR
-#define CCR_VAL 0 //value of CCR*/
+#define ARR_VAL 300 //value of ARR 685
+#define CCR_VAL 200 //value of CCR 343
 
 void TIM2_init(void){
 	/*------------------- Configure PA0 for GPIOA output -------------------*/
@@ -40,4 +40,15 @@ void TIM2_init(void){
 	__enable_irq();
 	//enable TIM2 in NVIC
 	NVIC->ISER[0] = (1 << TIM2_IRQn);
+}
+
+void enable_CCR(void){
+	TIM2->CCR1 = CCR_VAL;
+	TIM2->DIER |= TIM_DIER_CC1IE;
+	TIM2->SR &= ~(TIM_SR_CC1IF);
+}
+
+void disable_CCR(void){
+	//disable CCR update event interrupt
+	TIM2->DIER &= ~TIM_DIER_CC1IE;
 }
