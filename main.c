@@ -22,6 +22,7 @@
 #include "timer.h"
 #include "keypad.h"
 #include "LUTs.h"
+#define LUT_SIZE 588 //size of look up arrays
 #define VOLT_HIGH 3000 //high voltage for duty cycle
 #define VOLT_LOW 0 //low voltage for duty cycle
 #define MAX_DUTY_CYCLE 9 //max duty cycle
@@ -112,7 +113,7 @@ void TIM2_IRQHandler(void){
 		GPIOA->ODR |= (GPIO_ODR_OD1); //set bit high
 		output_waveform(keypress_val); //output according waveform
 		lut_index+=freq; //index by frequency
-		if (lut_index >= 588) {
+		if (lut_index >= LUT_SIZE) {
 			lut_index = 0; // Loop back to the start
 		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
