@@ -11,7 +11,5 @@
 #define CCR_VAL 0 //value of CCR*/
 
 void TIM2_init(void);
-void enable_CCR(void);
-void disable_CCR(void);
 
 #endif /* INC_TIMER_H_ */
