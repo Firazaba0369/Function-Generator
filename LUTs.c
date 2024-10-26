@@ -5,14 +5,16 @@
  *      Author: firaz
  */
 #include "main.h"
+#define VOLT_HIGH (uint16_t)3000 //high voltage for duty cycle
+#define VOLT_LOW (uint16_t)0 //low voltage for duty cycle
 
 
 void gen_square_wave(uint16_t *square_array, uint8_t dc){
-	for (int i = 0; i < 588; i++) {
-		if (i < 588/dc) {
-			square_array[i] = 3000; // Set to high voltage
+	for (uint16_t i = 0; i < 588; i++) {
+		if (i < (588*dc)/10) {
+			square_array[i] = VOLT_HIGH; // Set to high voltage
 		} else {
-			square_array[i] = 0; // Set to low voltage
+			square_array[i] = VOLT_LOW; // Set to low voltage
 		}
 	}
 }
