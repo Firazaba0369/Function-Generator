@@ -8,9 +8,12 @@
 #define VOLT_HIGH (uint16_t)2850 //3V high voltage for duty cycle
 #define VOLT_LOW (uint16_t)0 //low voltage for duty cycle
 
-
+/**
+  * @brief Generate Square Wave
+  * @retval None
+  */
 void gen_square_wave(uint16_t *square_array, uint8_t dc){
-	for (uint16_t i = 0; i < 1720; i++) { //oriinally 588
+	for (uint16_t i = 0; i < 1720; i++) {
 		if (i < (1720*dc)/10) {
 			square_array[i] = VOLT_HIGH; // Set to high voltage
 		} else {
