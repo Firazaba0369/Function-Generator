@@ -31,7 +31,7 @@
 #define THREE_HUNDRED 3
 #define FOUR_HUNDRED 4
 #define FIVE_HUNDRED 5
-#define LUT_SIZE 588 //size of look up arrays
+#define LUT_SIZE 1720 //size of look up arrays 588
 #define VOLT_HIGH (uint16_t)3000 //high voltage for duty cycle
 #define VOLT_LOW (uint16_t)0 //low voltage for duty cycle
 #define MAX_DUTY_CYCLE 9 //max duty cycle
@@ -58,7 +58,7 @@ volatile uint8_t wave_sel = SQUARE; //initialize to square
 //Global variable for LUT index
 volatile uint16_t lut_index = 0;
 //Square wave array
-uint16_t square[588];
+uint16_t square[1720];
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,6 +83,18 @@ int main(void)
   DAC_init();
   TIM2_init();
   keypad_init();
+
+  //configure GPIOA clock
+ 	 RCC->AHB2ENR   |=  (RCC_AHB2ENR_GPIOAEN);
+ 	 //setup MODER for row output
+ 	 GPIOA->MODER &= ~(GPIO_MODER_MODE1);
+ 	 GPIOA->MODER |= (GPIO_MODER_MODE1_0);
+ 	 //set push-pull output type
+ 	 GPIOA->OTYPER &= ~(GPIO_OTYPER_OT1);
+ 	 //no PUPD
+ 	 GPIOA->PUPDR |= (GPIO_PUPDR_PUPD1_1);
+ 	 //set to high speed
+ 	 GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED1_Msk);
 
   //configure square wave
   gen_square_wave(square, duty_cycle);//fill in square array
@@ -112,10 +124,11 @@ void TIM2_IRQHandler(void){
 	if (TIM2->SR & TIM_SR_UIF){
 		output_waveform(); //output according waveform
 		lut_index+=freq; //index by frequency
-		if (lut_index >= LUT_SIZE) {
+		if (lut_index >= LUT_SIZE) {//****MOVE THIS*****
 			lut_index = 0; // Loop back to the start
 		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
+		//GPIOA->ODR &= ~(GPIO_ODR_OD1);
 	}
 }
 
@@ -191,12 +204,12 @@ void update_freq(int8_t keypress){
   */
 void update_duty_cycle(int8_t keypress){
 	//check if duty cycle needs to be increased by 10%
-	if(keypress == ASTERISK && duty_cycle != MAX_DUTY_CYCLE){
+	if(keypress == POUND && duty_cycle != MAX_DUTY_CYCLE){
 		duty_cycle += 1; //increase duty cycle by 10%
 		gen_square_wave(square, duty_cycle); //change square wave array
 	}
 	//check if duty cycle needs to be decreased by 10%
-	else if(keypress == POUND && duty_cycle != MIN_DUTY_CYCLE){
+	else if(keypress == ASTERISK && duty_cycle != MIN_DUTY_CYCLE){
 		duty_cycle -= 1; //decrease duty cycle by 10%
 		gen_square_wave(square, duty_cycle); // change square wave array
 	}
