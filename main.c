@@ -31,9 +31,7 @@
 #define THREE_HUNDRED 3
 #define FOUR_HUNDRED 4
 #define FIVE_HUNDRED 5
-#define LUT_SIZE 1720 //size of look up arrays 588
-#define VOLT_HIGH (uint16_t)3000 //high voltage for duty cycle
-#define VOLT_LOW (uint16_t)0 //low voltage for duty cycle
+#define LUT_SIZE 1720 //size of look up arrays
 #define MAX_DUTY_CYCLE 9 //max duty cycle
 #define MIN_DUTY_CYCLE 1 //min duty cycle
 
@@ -83,19 +81,7 @@ int main(void)
   DAC_init();
   TIM2_init();
   keypad_init();
-
-  //configure GPIOA clock
- 	 RCC->AHB2ENR   |=  (RCC_AHB2ENR_GPIOAEN);
- 	 //setup MODER for row output
- 	 GPIOA->MODER &= ~(GPIO_MODER_MODE1);
- 	 GPIOA->MODER |= (GPIO_MODER_MODE1_0);
- 	 //set push-pull output type
- 	 GPIOA->OTYPER &= ~(GPIO_OTYPER_OT1);
- 	 //no PUPD
- 	 GPIOA->PUPDR |= (GPIO_PUPDR_PUPD1_1);
- 	 //set to high speed
- 	 GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED1_Msk);
-
+  
   //configure square wave
   gen_square_wave(square, duty_cycle);//fill in square array
 
@@ -123,12 +109,7 @@ void TIM2_IRQHandler(void){
 	//check for ARR flag
 	if (TIM2->SR & TIM_SR_UIF){
 		output_waveform(); //output according waveform
-		lut_index+=freq; //index by frequency
-		if (lut_index >= LUT_SIZE) {//****MOVE THIS*****
-			lut_index = 0; // Loop back to the start
-		}
 		TIM2->SR &= ~(TIM_SR_UIF);	// clear update event interrupt flag
-		//GPIOA->ODR &= ~(GPIO_ODR_OD1);
 	}
 }
 
@@ -149,6 +130,12 @@ void output_waveform(){
 	else if(wave_sel == SQUARE){
 		DAC_write(DAC_volt_conv(square[lut_index])); //output square wave
 	}
+	
+	lut_index+=freq; //index by frequency
+	if (lut_index >= LUT_SIZE) {
+		lut_index = 0; // Loop back to the start
+	}
+
 	return;
 }
 
