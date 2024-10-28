@@ -76,14 +76,16 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  //configure square wave
+   gen_square_wave(square, duty_cycle);//fill in square array
+
   /* Initialize all configured peripherals */
   //initialize DAC, TIM2, and keypad
   DAC_init();
   TIM2_init();
   keypad_init();
-  
-  //configure square wave
-  gen_square_wave(square, duty_cycle);//fill in square array
+
+
 
   /* Infinite loop */
   while (1)
@@ -130,7 +132,7 @@ void output_waveform(){
 	else if(wave_sel == SQUARE){
 		DAC_write(DAC_volt_conv(square[lut_index])); //output square wave
 	}
-	
+
 	lut_index+=freq; //index by frequency
 	if (lut_index >= LUT_SIZE) {
 		lut_index = 0; // Loop back to the start
