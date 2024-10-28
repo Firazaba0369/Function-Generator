@@ -110,7 +110,7 @@ int main(void)
 void TIM2_IRQHandler(void){
 	//check for ARR flag
 	if (TIM2->SR & TIM_SR_UIF){
-		output_waveform(keypress_val); //output according waveform
+		output_waveform(); //output according waveform
 		lut_index+=freq; //index by frequency
 		if (lut_index >= LUT_SIZE) {
 			lut_index = 0; // Loop back to the start
