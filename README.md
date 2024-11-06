@@ -1,1 +1,1 @@
-Function generator files for project 1 of Microcontrollers course
+Function generator developed using STM32 Microcontroller 
