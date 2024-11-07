@@ -1,1 +1,1 @@
-Function generator developed using STM32 Microcontroller 
+This repository contains the implementation of a function generator developed using an STM32 microcontroller. The project enables users to generate customizable waveforms with configurable frequency, such as sine, square, and triangular waves.
